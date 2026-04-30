@@ -1,0 +1,4 @@
+Cashew/
+__pycache__/
+*.log
+.env
