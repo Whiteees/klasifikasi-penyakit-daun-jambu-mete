@@ -1,5 +1,8 @@
 tensorflow
-streamlit
+flask
 matplotlib
 numpy
 pillow
+scipy
+scikit-image
+opencv-python

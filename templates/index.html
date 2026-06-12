@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Klasifikasi penyakit daun jambu mete menggunakan model CNN deep learning.">
+  <title>Klasifikasi Daun Jambu Mete</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+  <main class="page">
+    <section class="panel">
+
+      <div class="header">
+        <div class="badge"> Sistem Deteksi Penyakit</div>
+        <h1>Klasifikasi Penyakit Daun Jambu Mete</h1>
+        <p class="subtitle">Upload gambar daun jambu mete, lalu sistem akan menganalisis dan menampilkan hasil prediksi
+          menggunakan model CNN.</p>
+      </div>
+
+      <form class="upload-form" method="post" enctype="multipart/form-data">
+        <label class="upload-box" for="image">
+          <input id="image" name="image" type="file" accept="image/*" required>
+          <div class="upload-placeholder" id="uploadText">
+            <div class="upload-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
+            <strong>Klik atau seret gambar daun ke sini</strong>
+            <small>Mendukung format JPG, PNG, BMP, WEBP</small>
+          </div>
+          <img id="preview" alt="Preview gambar daun">
+        </label>
+
+        <button id="predictButton" type="submit" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          Analisis Gambar
+        </button>
+      </form>
+
+      {% if error %}
+      <div class="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        {{ error }}
+      </div>
+      {% endif %}
+
+      {% if not result and not error %}
+      <section class="start-guide">
+        <article class="guide-card">
+          <div class="guide-heading">
+            <span>Tips Gambar</span>
+            <h2>Gunakan foto daun yang jelas</h2>
+          </div>
+          <ul class="tip-list">
+            <li>Pastikan daun jambu mete terlihat dominan di dalam gambar.</li>
+            <li>Gunakan pencahayaan yang cukup agar warna dan bercak daun terbaca.</li>
+            <li>Hindari background yang terlalu ramai atau daun yang saling menumpuk.</li>
+            <li>Ambil gambar dari jarak sedang, tidak terlalu jauh dan tidak terlalu blur.</li>
+          </ul>
+        </article>
+
+        <article class="guide-card">
+          <div class="guide-heading">
+            <span>Alur Sistem</span>
+            <h2>Proses klasifikasi</h2>
+          </div>
+          <div class="flow-list">
+            <div class="flow-item">
+              <b>1</b>
+              <div>
+                <strong>Upload gambar</strong>
+                <p>Pengguna memilih foto daun jambu mete dari perangkat.</p>
+              </div>
+            </div>
+            <div class="flow-item">
+              <b>2</b>
+              <div>
+                <strong>Pengolahan citra</strong>
+                <p>Gambar disesuaikan ukurannya dan divisualisasikan melalui beberapa tahap Pengolahan Citra Digital.
+                </p>
+              </div>
+            </div>
+            <div class="flow-item">
+              <b>3</b>
+              <div>
+                <strong>Prediksi CNN</strong>
+                <p>Model menampilkan kelas penyakit dan confidence dari hasil prediksi.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+      {% endif %}
+
+      {% if result %}
+      <section class="result">
+        <div class="result-summary">
+          <div class="result-main {{ result.display_type }}">
+            <span class="status-badge">{{ result.status }}</span>
+            <span class="result-label">Hasil Prediksi</span>
+            <h2 class="diagnosis-name">{{ result.class_name|title }}</h2>
+            <div class="confidence-panel">
+              <span>Confidence</span>
+              <strong>{{ "%.2f"|format(result.confidence * 100) }}%</strong>
+            </div>
+            <div class="confidence-row">
+              <span class="confidence-badge">Keyakinan: {{ result.confidence_level }}</span>
+            </div>
+            {% if result.is_unknown %}
+            <small class="match-note">Kemiripan terdekat: {{ result.matched_class|title }}</small>
+            {% endif %}
+          </div>
+
+          <div class="result-info">
+            <article class="description">
+              <h2>Deskripsi Penyakit</h2>
+              <p>{{ result.description }}</p>
+            </article>
+
+            {% if solusi_text %}
+            <div class="solusi-card">
+              <div class="solusi-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <h4>Saran Penanganan</h4>
+              </div>
+              <ul class="solusi-list">
+                {% for item in solusi_text[:3] %}
+                <li>{{ item }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="scores">
+            <h3 class="scores-title">Distribusi Probabilitas</h3>
+            {% for item in result.probabilities %}
+            <div class="score-row">
+              <div class="score-label">
+                <span>{{ item.name|title }}</span>
+                <b>{{ "%.2f"|format(item.score * 100) }}%</b>
+              </div>
+              <div class="bar">
+                <div style="width: {{ item.score * 100 }}%"></div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="analysis-section">
+          <article class="pipeline-card">
+            <h3 class="pipeline-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              Pipeline Pengolahan Citra
+            </h3>
+            <div class="pipeline-grid">
+              <div class="pipeline-item">
+                {% if processing_steps and processing_steps|length > 0 %}
+                <img src="{{ processing_steps[0].image }}" alt="Citra Original">
+                {% endif %}
+                <span>Citra Input</span>
+              </div>
+              <div class="pipeline-item">
+                {% if processing_steps and processing_steps|length > 1 %}
+                <img src="{{ processing_steps[1].image }}" alt="Resize 224x224">
+                {% endif %}
+                <span>Resize 224x224</span>
+              </div>
+              <div class="pipeline-item">
+                {% if processing_steps and processing_steps|length > 2 %}
+                <img src="{{ processing_steps[2].image }}" alt="Grayscale">
+                {% endif %}
+                <span>Grayscale</span>
+              </div>
+            </div>
+          </article>
+
+          {% if glcm_data %}
+          <article class="glcm-card">
+            <h3 class="glcm-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
+              Analisis Tekstur Daun (GLCM)
+            </h3>
+            <p class="glcm-subtitle">Fitur GLCM digunakan untuk menganalisis pola tekstur daun berdasarkan citra
+              grayscale.</p>
+            <table class="glcm-table">
+              <thead>
+                <tr>
+                  <th>Fitur</th>
+                  <th>Nilai</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for name, value in glcm_data.features.items() %}
+                <tr>
+                  <td>
+                    <span class="glcm-dot"></span>
+                    {{ name }}
+                  </td>
+                  <td><code>{{ value }}</code></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </article>
+          {% endif %}
+        </div>
+      </section>
+
+      {% endif %}
+
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>

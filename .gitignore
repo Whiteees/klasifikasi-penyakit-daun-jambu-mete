@@ -1,4 +1,18 @@
-Cashew/
+# Python cache
 __pycache__/
+*.pyc
+
+# Dataset (BESAR, JANGAN DIPUSH)
+Cashew/
+
+# Logs
 *.log
+
+# Training output/cache
+cashew_model.h5
+training_history.png
+.matplotlib/
+.tmp/
+
+# Environment
 .env

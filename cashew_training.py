@@ -2,87 +2,87 @@ import argparse
 import os
 from pathlib import Path
 
+os.environ.setdefault("MPLCONFIGDIR", str(Path(__file__).resolve().parent / ".matplotlib"))
+
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
+from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling2D
+from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, GlobalAveragePooling2D
 from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 32
-EPOCHS = 20
+EPOCHS = 100
 MODEL_PATH = "cashew_model.h5"
 PLOT_PATH = "training_history.png"
 
-CLASS_FOLDERS = ["healthy", "anthracnose", "leaf miner", "red rust"]
+CLASS_FOLDERS = ["anthracnose", "healthy", "leaf miner", "red rust"]
 
 
-def find_dataset_dirs(dataset_dir: Path) -> tuple[Path, Path | None]:
+def find_dataset_dirs(dataset_dir: Path) -> tuple[Path, Path]:
     train_dir = dataset_dir / "train"
-    test_dir = dataset_dir / "test"
+    valid_dir = dataset_dir / "test"
 
     if not train_dir.exists():
         train_dir = dataset_dir / "train_set"
-    if not test_dir.exists():
-        test_dir = dataset_dir / "test_set"
+    if not valid_dir.exists():
+        valid_dir = dataset_dir / "test_set"
 
     if not train_dir.exists():
         raise FileNotFoundError(
             f"Folder train tidak ditemukan. Dicari di: {dataset_dir / 'train'} "
             f"atau {dataset_dir / 'train_set'}"
         )
+    if not valid_dir.exists():
+        raise FileNotFoundError(
+            f"Folder validasi/test tidak ditemukan. Dicari di: {dataset_dir / 'test'} "
+            f"atau {dataset_dir / 'test_set'}"
+        )
 
-    return train_dir, test_dir if test_dir.exists() else None
+    return train_dir, valid_dir
 
 
-def create_generators(train_dir: Path, test_dir: Path | None):
+def create_generators(train_dir: Path, valid_dir: Path):
     train_datagen = ImageDataGenerator(
-        preprocessing_function=preprocess_input,
-        validation_split=0.2,
-        rotation_range=30,
-        zoom_range=0.2,
+        rescale=1.0 / 255,
+        rotation_range=90,
+        width_shift_range=0.3,
+        height_shift_range=0.3,
+        shear_range=0.3,
+        zoom_range=0.4,
         horizontal_flip=True,
+        vertical_flip=True,
+        brightness_range=[0.6, 1.4],
+        fill_mode="reflect",
     )
 
-    test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+    valid_datagen = ImageDataGenerator(rescale=1.0 / 255)
 
     train_generator = train_datagen.flow_from_directory(
         train_dir,
         target_size=IMG_SIZE,
         batch_size=BATCH_SIZE,
         class_mode="categorical",
-        subset="training",
         classes=CLASS_FOLDERS,
         shuffle=True,
     )
 
-    validation_generator = train_datagen.flow_from_directory(
-        train_dir,
+    valid_generator = valid_datagen.flow_from_directory(
+        valid_dir,
         target_size=IMG_SIZE,
         batch_size=BATCH_SIZE,
         class_mode="categorical",
-        subset="validation",
         classes=CLASS_FOLDERS,
         shuffle=False,
     )
 
-    test_generator = None
-    if test_dir is not None:
-        test_generator = test_datagen.flow_from_directory(
-            test_dir,
-            target_size=IMG_SIZE,
-            batch_size=BATCH_SIZE,
-            class_mode="categorical",
-            classes=CLASS_FOLDERS,
-            shuffle=False,
-        )
-
-    return train_generator, validation_generator, test_generator
+    return train_generator, valid_generator
 
 
 def build_model(num_classes: int) -> Model:
@@ -91,18 +91,21 @@ def build_model(num_classes: int) -> Model:
         include_top=False,
         input_shape=(IMG_SIZE[0], IMG_SIZE[1], 3),
     )
-    base_model.trainable = False
+    base_model.trainable = True
 
     x = base_model.output
     x = GlobalAveragePooling2D()(x)
+    x = BatchNormalization()(x)
+    x = Dense(512, activation="relu")(x)
+    x = Dropout(0.7)(x)
     x = Dense(256, activation="relu")(x)
     x = Dropout(0.5)(x)
     outputs = Dense(num_classes, activation="softmax")(x)
 
     model = Model(inputs=base_model.input, outputs=outputs)
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(),
-        loss=tf.keras.losses.CategoricalCrossentropy(),
+        optimizer=Adam(learning_rate=5e-6),
+        loss="categorical_crossentropy",
         metrics=["accuracy"],
     )
     return model
@@ -113,23 +116,22 @@ def plot_history(history, output_path: str = PLOT_PATH):
     val_acc = history.history["val_accuracy"]
     loss = history.history["loss"]
     val_loss = history.history["val_loss"]
+    epochs_range = range(1, len(acc) + 1)
 
-    plt.figure(figsize=(12, 5))
+    plt.figure(figsize=(16, 6))
 
     plt.subplot(1, 2, 1)
-    plt.plot(acc, label="Training Accuracy")
-    plt.plot(val_acc, label="Validation Accuracy")
-    plt.title("Accuracy")
-    plt.xlabel("Epoch")
-    plt.ylabel("Accuracy")
+    plt.plot(epochs_range, acc, label="Training Acc")
+    plt.plot(epochs_range, val_acc, label="Validation Acc")
+    plt.title("Akurasi")
+    plt.grid(True)
     plt.legend()
 
     plt.subplot(1, 2, 2)
-    plt.plot(loss, label="Training Loss")
-    plt.plot(val_loss, label="Validation Loss")
+    plt.plot(epochs_range, loss, label="Training Loss")
+    plt.plot(epochs_range, val_loss, label="Validation Loss")
     plt.title("Loss")
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss")
+    plt.grid(True)
     plt.legend()
 
     plt.tight_layout()
@@ -138,14 +140,16 @@ def plot_history(history, output_path: str = PLOT_PATH):
 
 
 def train(dataset_dir: Path):
-    train_dir, test_dir = find_dataset_dirs(dataset_dir)
-    train_generator, validation_generator, test_generator = create_generators(train_dir, test_dir)
+    train_dir, valid_dir = find_dataset_dirs(dataset_dir)
+    train_generator, valid_generator = create_generators(train_dir, valid_dir)
+
+    print("Class indices:", train_generator.class_indices)
 
     model = build_model(num_classes=len(CLASS_FOLDERS))
 
     callbacks = [
         ModelCheckpoint(
-            MODEL_PATH,
+            filepath=MODEL_PATH,
             monitor="val_accuracy",
             save_best_only=True,
             mode="max",
@@ -153,33 +157,34 @@ def train(dataset_dir: Path):
         ),
         EarlyStopping(
             monitor="val_loss",
-            patience=5,
+            patience=20,
             restore_best_weights=True,
             verbose=1,
         ),
         ReduceLROnPlateau(
             monitor="val_loss",
-            factor=0.2,
-            patience=3,
-            min_lr=1e-7,
+            factor=0.5,
+            patience=10,
+            min_lr=1e-8,
             verbose=1,
         ),
     ]
 
     history = model.fit(
         train_generator,
-        validation_data=validation_generator,
         epochs=EPOCHS,
+        validation_data=valid_generator,
         callbacks=callbacks,
+        verbose=1,
     )
 
     plot_history(history)
 
-    if test_generator is not None and Path(MODEL_PATH).exists():
+    if Path(MODEL_PATH).exists():
         best_model = load_model(MODEL_PATH)
-        test_loss, test_accuracy = best_model.evaluate(test_generator)
-        print(f"Test Loss     : {test_loss:.4f}")
-        print(f"Test Accuracy : {test_accuracy:.4f}")
+        val_loss, val_accuracy = best_model.evaluate(valid_generator, verbose=1)
+        print(f"Validation Loss     : {val_loss:.4f}")
+        print(f"Validation Accuracy : {val_accuracy:.4f}")
 
     print(f"Model terbaik disimpan ke: {Path(MODEL_PATH).resolve()}")
     print(f"Plot training disimpan ke: {Path(PLOT_PATH).resolve()}")
@@ -195,9 +200,9 @@ def predict_image(model_path: str, image_path: str):
     img = image.load_img(image_path, target_size=IMG_SIZE)
     img_array = image.img_to_array(img)
     img_array = np.expand_dims(img_array, axis=0)
-    img_array = preprocess_input(img_array)
+    img_array = img_array / 255.0
 
-    predictions = model.predict(img_array)[0]
+    predictions = model.predict(img_array, verbose=0)[0]
     best_idx = int(np.argmax(predictions))
 
     print("\nHasil Prediksi")
@@ -231,12 +236,12 @@ def open_interactive_predictor(model_path: str):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Klasifikasi penyakit daun jambu mete dengan ResNet50 Transfer Learning."
+        description="Klasifikasi penyakit daun jambu mete dengan ResNet50 fine-tuning."
     )
     parser.add_argument(
         "--dataset",
         default="D:/PC/Cashew",
-        help="Path dataset yang berisi folder train/train_set dan test/test_set.",
+        help="Path dataset yang berisi folder train dan test.",
     )
     parser.add_argument(
         "--predict",

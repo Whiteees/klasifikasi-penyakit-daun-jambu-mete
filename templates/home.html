@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Beranda sistem klasifikasi penyakit daun jambu mete menggunakan CNN dan GLCM.">
+    <title>CashewCare - Beranda</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <main class="page">
+        <header class="site-header">
+            <div class="site-brand">
+            </div>
+            <nav class="site-nav">
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('home') }}">Beranda</a></li>
+                    <li><a href="{{ url_for('analysis') }}">Analisis Daun</a></li>
+                </ul>
+                <a class="button button-secondary" href="{{ url_for('analysis') }}">Mulai Analisis</a>
+            </nav>
+        </header>
+
+        <section class="hero-section">
+            <div class="hero-copy">
+                <h1>Klasifikasi Penyakit Daun Jambu Mete Menggunakan Convolutional Neural Network (CNN)</h1>
+                <p>Sistem ini digunakan untuk mengidentifikasi kondisi kesehatan daun jambu mete berdasarkan citra daun
+                    menggunakan metode Convolutional Neural Network (CNN) serta analisis tekstur Gray Level
+                    Co-occurrence Matrix (GLCM).</p>
+                <div class="hero-actions">
+                    <a class="button button-primary" href="{{ url_for('analysis') }}">Mulai Analisis</a>
+                    <a class="button button-outline" href="#about">Tentang Sistem</a>
+                </div>
+            </div>
+
+            <div class="hero-media">
+                <div class="hero-image-placeholder">
+                    <img src="{{ url_for('static', filename='cashew.png') }}" alt="Ilustrasi daun jambu mete">
+                </div>
+            </div>
+        </section>
+
+        <section id="about" class="section-about">
+            <div class="section-heading">
+                <h2>Tentang Sistem</h2>
+            </div>
+            <div class="card-grid">
+                <article class="feature-card">
+                    <h3>CNN</h3>
+                    <p>Digunakan untuk mengklasifikasikan penyakit daun berdasarkan pola visual.</p>
+                </article>
+                <article class="feature-card">
+                    <h3>GLCM</h3>
+                    <p>Digunakan untuk menganalisis karakteristik tekstur daun melalui citra grayscale.</p>
+                </article>
+                <article class="feature-card">
+                    <h3>Rekomendasi</h3>
+                    <p>Sistem memberikan saran penanganan berdasarkan hasil klasifikasi.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="section-process">
+            <div class="section-heading">
+                <h2>Alur Penggunaan</h2>
+            </div>
+            <div class="steps-grid">
+                <article class="step-card">
+                    <div class="step-number">1</div>
+                    <h3>Upload Gambar Daun</h3>
+                    <p>Unggah citra daun jambu mete untuk dianalisis.</p>
+                </article>
+                <article class="step-card">
+                    <div class="step-number">2</div>
+                    <h3>Resize dan Grayscale</h3>
+                    <p>Gambar diubah ukuran dan diproses ke format grayscale.</p>
+                </article>
+                <article class="step-card">
+                    <div class="step-number">3</div>
+                    <h3>Klasifikasi CNN</h3>
+                    <p>Model CNN mengevaluasi kondisi daun berdasarkan fitur visual.</p>
+                </article>
+                <article class="step-card">
+                    <div class="step-number">4</div>
+                    <h3>Hasil Diagnosa</h3>
+                    <p>Pengguna menerima hasil klasifikasi dan rekomendasi penanganan.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="cta-section">
+            <div class="cta-card">
+                <div>
+                    <h2>Mulai analisis kondisi daun jambu mete sekarang.</h2>
+                    <p>Gunakan sistem ini untuk membantu diagnosis yang lebih cepat dan terstruktur.</p>
+                </div>
+                <a class="button button-primary" href="{{ url_for('analysis') }}">Analisis Daun</a>
+            </div>
+        </section>
+
+        <footer class="site-footer">
+            <p>Sistem Klasifikasi Penyakit Daun Jambu Mete Menggunakan CNN dan GLCM</p>
+        </footer>
+    </main>
+</body>
+
+</html>
